@@ -42,7 +42,7 @@ public class DeviceImageLoader {
 		
 		try {
             // get input stream
-            InputStream ims = a.open("20150313_151856.jpg");
+            InputStream ims = a.open("20150313_151447.jpg");
             Bitmap img = DeviceUtils.decodeStream(ims, width, height);
 			int[] pixels = new int[width*height];
 			img.getPixels(pixels, 0, img.getWidth(), 0, 0, img.getWidth(), img.getHeight());
@@ -73,8 +73,8 @@ public class DeviceImageLoader {
 	public DenseDoubleMatrix2D normalizeData(DenseDoubleMatrix2D data) {
 		DenseDoubleMatrix2D mean = getRowMeans(data);
 		data = (DenseDoubleMatrix2D) data.assign(mean, DeviceUtils.sub);
-		DenseDoubleMatrix2D squareData = new DenseDoubleMatrix2D(data.rows(), data.columns());
-		data.zMult(data, squareData);
+		DenseDoubleMatrix2D squareData = new DenseDoubleMatrix2D(data.toArray());
+		squareData.assign(data, DoubleFunctions.mult);
 		
 		double var = squareData.zSum()/squareData.size();
 		double stdev = Math.sqrt(var);
@@ -112,6 +112,6 @@ public class DeviceImageLoader {
 		if(images==null) {
 			throw new Exception("AalsdflKJHLJHFALKSJDHFLKAJSHDFLKJASHDFKLAJSHDFLKAJHSDFKLASJHDFKLJASHDFKLJHASDKLFJH");
 		}
-		return images;
+		return normalizeData(images);
 	}
 }

@@ -123,7 +123,7 @@ public class DeviceUtils {
                 inSampleSize *= 2;
             }
         }
-
+        Log.d("INPUT", ""+inSampleSize);
         return inSampleSize;
     }
 
@@ -149,18 +149,20 @@ public class DeviceUtils {
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
         BitmapFactory.decodeStream(is, null, o);
-
+        o = new BitmapFactory.Options();
         o.inSampleSize = calculateInSampleSize(o, width, height);
         o.inJustDecodeBounds = false;
         Log.d("DECODE","Height:"+o.outHeight);
         Log.d("DECODE", "Width:" + o.outWidth);
-        if(o.outWidth > o.outHeight) {
+        if(o.outWidth < o.outHeight) {
             return Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o), height, width, true);
         }
         else{
             Matrix matrix = new Matrix();
             matrix.postRotate(90);
-            return Bitmap.createBitmap(Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o), height, width, true), 0, 0, width, height, matrix, true);
+            Bitmap temp = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o), height, width, true);
+            Log.d("DECODE", temp.getWidth()+"X"+temp.getHeight());
+            return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
         }
     }
 

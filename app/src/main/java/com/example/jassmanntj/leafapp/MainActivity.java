@@ -76,8 +76,9 @@ public class MainActivity extends ActionBarActivity {
 	
 	public void run(View view) throws Exception {
 		long start = System.currentTimeMillis();
-		loader.loadFolder(3, 60, 80);
+		loader.loadFolder(3, 80, 60);
 		DenseDoubleMatrix2D image = loader.getImages();
+        Log.d("INPUT", image.toString());
 		long timeLoad = System.currentTimeMillis();
 		DoubleMatrix2D result = cnn.compute(image);
         Log.d("RESULTD",result.toString());
