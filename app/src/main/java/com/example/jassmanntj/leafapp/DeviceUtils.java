@@ -149,18 +149,20 @@ public class DeviceUtils {
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
         BitmapFactory.decodeStream(is, null, o);
-        o = new BitmapFactory.Options();
-        o.inSampleSize = calculateInSampleSize(o, width, height);
-        o.inJustDecodeBounds = false;
+        BitmapFactory.Options o2 = new BitmapFactory.Options();
+        o2.inSampleSize = calculateInSampleSize(o, width, height);
+        o2.inJustDecodeBounds = false;
         Log.d("DECODE","Height:"+o.outHeight);
         Log.d("DECODE", "Width:" + o.outWidth);
         if(o.outWidth < o.outHeight) {
-            return Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o), height, width, true);
+            Log.d("INPUT", "HERE");
+            return Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o2), height, width, true);
         }
         else{
+            Log.d("INPUT", "THERE");
             Matrix matrix = new Matrix();
             matrix.postRotate(90);
-            Bitmap temp = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o), height, width, true);
+            Bitmap temp = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o2), height, width, true);
             Log.d("DECODE", temp.getWidth()+"X"+temp.getHeight());
             return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
         }
