@@ -15,7 +15,7 @@ import cern.colt.matrix.tdouble.algo.DenseDoubleAlgebra;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
 import cern.jet.math.tdouble.DoubleFunctions;
 
-public class DeviceConvolutionLayer extends DeviceNeuralNetworkLayer {
+public class DeviceConvolutionLayer {
 	DenseDoubleMatrix2D whitenedTheta;
 	DenseDoubleMatrix2D whitenedBias;
 	DenseDoubleMatrix2D pooledFeatures;
@@ -71,12 +71,11 @@ public class DeviceConvolutionLayer extends DeviceNeuralNetworkLayer {
 		}
 	}
 	
-	@Override
-	public DoubleMatrix2D compute(DoubleMatrix2D input) {
+	public DoubleMatrix2D compute(DoubleMatrix2D[] input) {
 		int numFeatures = whitenedTheta.columns();
 		int resultRows = (imageRows - patchDim+1) / poolDim;
 		int resultCols = (imageCols - patchDim+1) / poolDim;
-		pooledFeatures = new DenseDoubleMatrix2D(input.rows(), numFeatures * (resultRows * resultCols));
+		pooledFeatures = new DenseDoubleMatrix2D(1, numFeatures * (resultRows * resultCols));
 		for(int featureNum = 0; featureNum < whitenedTheta.columns(); featureNum++) {
 			DoubleMatrix2D convolvedFeature = convFeature(input, featureNum);
 			pool(convolvedFeature, featureNum, 0, resultRows, resultCols);
@@ -84,16 +83,14 @@ public class DeviceConvolutionLayer extends DeviceNeuralNetworkLayer {
 		return pooledFeatures;
 	}
 	
-	public DoubleMatrix2D convFeature(DoubleMatrix2D input, int featureNum) {
+	public DoubleMatrix2D convFeature(DoubleMatrix2D[] input, int featureNum) {
 		DoubleMatrix2D convolvedFeature = new DenseDoubleMatrix2D(imageRows - patchDim + 1, imageCols - patchDim + 1);
 		int patchSize = patchDim * patchDim;
 		DenseDoubleAlgebra d = new DenseDoubleAlgebra();
 		for(int channel = 0; channel < 3; channel++) {
 			DenseDoubleMatrix2D feature = (DenseDoubleMatrix2D) d.subMatrix(whitenedTheta, patchSize*channel, patchSize*channel+patchSize-1, featureNum, featureNum);
 			feature = reshape(feature, patchDim, patchDim);
-			DenseDoubleMatrix2D in = (DenseDoubleMatrix2D) d.subMatrix(input, 0, 0, imageRows*imageCols*channel, imageRows*imageCols*channel+imageRows*imageCols-1);
-			in = reshape(in, imageRows, imageCols);
-			DoubleMatrix2D conv = DeviceUtils.conv2d(in, feature);
+			DoubleMatrix2D conv = DeviceUtils.conv2d(input[channel], feature);
 			convolvedFeature.assign(conv, DoubleFunctions.plus);
 		}
 		convolvedFeature.assign(DoubleFunctions.plus(whitenedBias.get(0, featureNum)));
@@ -119,33 +116,6 @@ public class DeviceConvolutionLayer extends DeviceNeuralNetworkLayer {
 				pooledFeatures.set(imageNum, featureNum*resultRows*resultCols+poolRow*resultCols+poolCol, patch.zSum()/(patch.size()));
 			}
 		}
-	}
-	
-	public void writeTheta(String filename) {
-		try {
-			FileWriter fw = new FileWriter(filename);
-			BufferedWriter writer = new BufferedWriter(fw);
-			writer.write(pooledFeatures.rows()+","+pooledFeatures.columns()+"\n");
-			for(int i = 0; i < pooledFeatures.rows(); i++){
-				for(int j = 0; j < pooledFeatures.columns(); j++) {
-					writer.write(pooledFeatures.get(i,j)+",");
-				}
-			}
-			writer.close();
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public DoubleMatrix2D getTheta() {
-		return null;
-	}
-
-	@Override
-	public DoubleMatrix2D getBias() {
-		return null;
 	}
 
 }

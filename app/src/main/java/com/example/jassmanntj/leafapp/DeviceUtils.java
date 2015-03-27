@@ -8,6 +8,9 @@ import android.net.Uri;
 import android.util.Log;
 
 import cern.colt.function.tdouble.DoubleDoubleFunction;
+import cern.colt.function.tdouble.DoubleFunction;
+import cern.colt.matrix.tdcomplex.DComplexMatrix1D;
+import cern.colt.matrix.tdcomplex.DComplexMatrix2D;
 import cern.colt.matrix.tdcomplex.impl.DenseDComplexMatrix1D;
 import cern.colt.matrix.tdcomplex.impl.DenseDComplexMatrix2D;
 import cern.colt.matrix.tdouble.DoubleFactory2D;
@@ -20,6 +23,7 @@ import cern.jet.math.tdouble.DoubleFunctions;
 import org.jtransforms.fft.DoubleFFT_2D;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class DeviceUtils {
@@ -27,7 +31,17 @@ public class DeviceUtils {
 	public static DoubleDoubleFunction sub = new DoubleDoubleFunction() {
 	    public double apply(double a, double b) { return a - b; }
 	};   
-	
+
+    public static final DoubleFunction norm(final double pstd) {
+        return new DoubleFunction() {
+            public double apply(double a) {
+                double val = a < pstd ? a:pstd;
+                val = val > -pstd ? val:-pstd;
+                val /= pstd;
+                return val;
+            }
+        };
+    }
 	
 	
 	public static DoubleMatrix2D sigmoid(DoubleMatrix2D result) {
@@ -39,7 +53,7 @@ public class DeviceUtils {
 	}
 	
 	
-	public static DenseDoubleMatrix2D conv2d(DenseDoubleMatrix2D input, DenseDoubleMatrix2D kernel) {
+	public static DoubleMatrix2D conv2d(DoubleMatrix2D input, DoubleMatrix2D kernel) {
 		int totalRows = input.rows() + kernel.rows() - 1;
 		int totalCols = input.columns() + kernel.columns() - 1;
 		int rowSize = input.rows() - kernel.rows() + 1;
@@ -49,7 +63,7 @@ public class DeviceUtils {
 
 		DoubleFactory2D concatFactory = DoubleFactory2D.dense;
 
-		DenseDoubleMatrix2D flippedKernel = new DenseDoubleMatrix2D(kernel.rows(), kernel.columns());
+		DoubleMatrix2D flippedKernel = new DenseDoubleMatrix2D(kernel.rows(), kernel.columns());
 		for(int i = 0; i < kernel.rows(); i++) {
 			for(int j = 0; j < kernel.columns(); j++) {
 				flippedKernel.set(i,j, kernel.get(kernel.rows()-1-i,kernel.columns()-1-j));
@@ -57,32 +71,25 @@ public class DeviceUtils {
 		}
 		kernel = flippedKernel;
 
-		input = (DenseDoubleMatrix2D) concatFactory.appendColumns(input, new DenseDoubleMatrix2D(input.rows(), kernel.columns()-1));
-		input = (DenseDoubleMatrix2D) concatFactory.appendRows(input, new DenseDoubleMatrix2D(kernel.rows()-1, input.columns()));
-		kernel = (DenseDoubleMatrix2D) concatFactory.appendColumns(kernel, new DenseDoubleMatrix2D(kernel.rows(), input.columns()-kernel.columns()));
-		kernel = (DenseDoubleMatrix2D) concatFactory.appendRows(kernel, new DenseDoubleMatrix2D(input.rows()-kernel.rows(), kernel.columns()));
+		input = concatFactory.appendColumns(input, new DenseDoubleMatrix2D(input.rows(), kernel.columns()-1));
+		input = concatFactory.appendRows(input, new DenseDoubleMatrix2D(kernel.rows()-1, input.columns()));
+		kernel = concatFactory.appendColumns(kernel, new DenseDoubleMatrix2D(kernel.rows(), input.columns()-kernel.columns()));
+		kernel = concatFactory.appendRows(kernel, new DenseDoubleMatrix2D(input.rows()-kernel.rows(), kernel.columns()));
 
         DenseDComplexMatrix2D inputDFT = new DenseDComplexMatrix2D(input);
 		DenseDComplexMatrix2D kernelDFT = new DenseDComplexMatrix2D(kernel);
-		DenseDComplexMatrix1D inDFT = (DenseDComplexMatrix1D) inputDFT.vectorize();
-		DenseDComplexMatrix1D kernDFT = (DenseDComplexMatrix1D) kernelDFT.vectorize();
-		
+
 		DoubleFFT_2D t = new DoubleFFT_2D(input.rows(), input.columns());
-		t.complexForward(inDFT.elements());
-		t.complexForward(kernDFT.elements());
-		
-		inputDFT = (DenseDComplexMatrix2D) inDFT.reshape(inputDFT.rows(), inputDFT.columns());
-		kernelDFT = (DenseDComplexMatrix2D) kernDFT.reshape(kernelDFT.rows(), kernelDFT.columns());
+
+		t.complexForward(inputDFT.elements());
+		t.complexForward(kernelDFT.elements());
 		kernelDFT.assign(inputDFT, DComplexFunctions.mult);
-		kernDFT = (DenseDComplexMatrix1D) kernelDFT.vectorize();
 		
-		
-		t.complexInverse(kernDFT.elements(), true);
-		kernelDFT = (DenseDComplexMatrix2D) kernDFT.reshape(kernelDFT.rows(), kernelDFT.columns());
-		
-		DenseDoubleMatrix2D result = (DenseDoubleMatrix2D) kernelDFT.getRealPart();
+		t.complexInverse(kernelDFT.elements(), true);
+
+		DoubleMatrix2D result = (DenseDoubleMatrix2D) kernelDFT.getRealPart();
 		DenseDoubleAlgebra d = new DenseDoubleAlgebra();
-		return (DenseDoubleMatrix2D) d.subMatrix(result,startRows,startRows+rowSize-1,startCols,startCols+colSize-1);
+		return d.subMatrix(result,startRows,startRows+rowSize-1,startCols,startCols+colSize-1);
 	 }
 
     public static int[] computeResults(DoubleMatrix2D result) {
@@ -104,6 +111,8 @@ public class DeviceUtils {
         }
         return results;
     }
+
+
 
     private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
         // Raw height and width of image
@@ -143,12 +152,12 @@ public class DeviceUtils {
         return Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, resId, options), reqHeight, reqWidth, true);
     }
 
-    public static Bitmap decodeStream(InputStream is, int width, int height) throws FileNotFoundException {
+    public static Bitmap decodeStream(InputStream is1, InputStream is2, int width, int height) throws IOException {
 
         // Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(is, null, o);
+        BitmapFactory.decodeStream(is1, null, o);
         BitmapFactory.Options o2 = new BitmapFactory.Options();
         o2.inSampleSize = calculateInSampleSize(o, width, height);
         o2.inJustDecodeBounds = false;
@@ -156,26 +165,56 @@ public class DeviceUtils {
         Log.d("DECODE", "Width:" + o.outWidth);
         if(o.outWidth < o.outHeight) {
             Log.d("INPUT", "HERE");
-            return Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o2), height, width, true);
+            return Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is2, null, o2), height, width, true);
         }
         else{
             Log.d("INPUT", "THERE");
             Matrix matrix = new Matrix();
             matrix.postRotate(90);
-            Bitmap temp = Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is, null, o2), height, width, true);
-            Log.d("DECODE", temp.getWidth()+"X"+temp.getHeight());
+            Bitmap tempa = BitmapFactory.decodeStream(is2, null, o2);
+            Bitmap temp = Bitmap.createScaledBitmap(tempa, width, height, true);
+            Log.d("DECODE", temp.getWidth() + "X" + temp.getHeight());
             return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
         }
     }
 
 
-	public static DenseDoubleMatrix2D ZCAWhiten(DenseDoubleMatrix2D input, DoubleMatrix1D meanPatch, DenseDoubleMatrix2D ZCAWhite) {
+	public static DoubleMatrix2D ZCAWhiten(DoubleMatrix2D input, DoubleMatrix1D meanPatch, DoubleMatrix2D ZCAWhite) {
 		for(int i = 0; i < input.rows(); i++) {
 			input.viewRow(i).assign(meanPatch, DeviceUtils.sub);
 		}
-		DenseDoubleMatrix2D result = new DenseDoubleMatrix2D(input.rows(), ZCAWhite.columns());
+		DoubleMatrix2D result = new DenseDoubleMatrix2D(input.rows(), ZCAWhite.columns());
 		input.zMult(ZCAWhite, result);
 		return result;
 	}
 
+    public static DoubleMatrix2D[] normalizeData(DoubleMatrix2D[] input) {
+        double mean = 0;
+        double elements = 0;
+        for(DoubleMatrix2D data : input) {
+            Log.d("INZZZ", "U"+data.toString());
+            mean += data.zSum();
+            elements += data.size();
+        }
+        mean /= elements;
+        Log.d("MEAN", "U"+mean);
+        double var = 0;
+        for(DoubleMatrix2D data : input) {
+            data = data.assign(DoubleFunctions.minus(mean));
+            DoubleMatrix2D squareData = new DenseDoubleMatrix2D(data.toArray());
+            squareData.assign(data, DoubleFunctions.mult);
+            var += squareData.zSum();
+        }
+        var /= elements;
+        Log.d("VAR", "U"+var);
+        double pstd = 3 * Math.sqrt(var);
+        for(DoubleMatrix2D data : input) {
+            data.assign(norm(pstd));
+            data.assign(DoubleFunctions.plus(1));
+            data.assign(DoubleFunctions.mult(0.4));
+            data.assign(DoubleFunctions.plus(0.1));
+        }
+
+        return input;
+    }
 }

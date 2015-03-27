@@ -3,20 +3,24 @@ package com.example.jassmanntj.leafapp;
 import cern.colt.matrix.tdouble.DoubleMatrix2D;
 
 public class DeviceCNN {
-	DeviceNeuralNetworkLayer[] layers;
+    DeviceConvolutionLayer[] cls;
+	DeviceSparseAutoencoder[] sls;
+    DeviceSoftmaxClassifier smx;
 
-	public DeviceCNN(DeviceNeuralNetworkLayer[] layers) {
-		this.layers = layers;
+	public DeviceCNN(DeviceConvolutionLayer[] cls, DeviceSparseAutoencoder[] sls, DeviceSoftmaxClassifier smx) {
+		this.cls = cls;
+        this.sls = sls;
+        this.smx = smx;
 	}
 	
-	public DoubleMatrix2D compute(DoubleMatrix2D input) {
-		long[] time = new long[layers.length];
-		for(int i = 0; i < layers.length; i++) {
-			long start = System.currentTimeMillis();
-			input = layers[i].compute(input);
-			long end = System.currentTimeMillis();
-			time[i] = end - start;
+	public DoubleMatrix2D compute(DoubleMatrix2D[] input) {
+        DoubleMatrix2D in = null;
+        for(int i = 0; i < cls.length; i++) {
+			in = cls[i].compute(input);
 		}
-		return input; //DeviceUtils.computeResults(input);
+        for(int i = 0; i < sls.length; i++) {
+            in = sls[i].compute(in);
+        }
+		return smx.compute(in);
 	}
 }
