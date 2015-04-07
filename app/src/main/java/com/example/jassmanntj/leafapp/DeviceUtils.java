@@ -18,9 +18,8 @@ import cern.colt.matrix.tdouble.DoubleMatrix1D;
 import cern.colt.matrix.tdouble.DoubleMatrix2D;
 import cern.colt.matrix.tdouble.algo.DenseDoubleAlgebra;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
-import cern.jet.math.tdcomplex.DComplexFunctions;
-import cern.jet.math.tdouble.DoubleFunctions;
-import org.jtransforms.fft.DoubleFFT_2D;
+import cern.jet.math.tdcomplex.DComplexFunctions;import cern.jet.math.tdouble.DoubleFunctions;
+import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -161,23 +160,22 @@ public class DeviceUtils {
         BitmapFactory.Options o2 = new BitmapFactory.Options();
         o2.inSampleSize = calculateInSampleSize(o, width, height);
         o2.inJustDecodeBounds = false;
-        Log.d("DECODE","Height:"+o.outHeight);
-        Log.d("DECODE", "Width:" + o.outWidth);
-        if(o.outWidth < o.outHeight) {
-            Log.d("INPUT", "HERE");
-            return Bitmap.createScaledBitmap(BitmapFactory.decodeStream(is2, null, o2), height, width, true);
+        Bitmap img = BitmapFactory.decodeStream(is2, null, o2);
+        return scaleImage(img, width, height);
+
+    }
+
+    public static Bitmap scaleImage(Bitmap image, int width, int height) {
+        if(image.getHeight() > image.getWidth()) {
+            return Bitmap.createScaledBitmap(image, width, height, true);
         }
-        else{
-            Log.d("INPUT", "THERE");
+        else {
             Matrix matrix = new Matrix();
             matrix.postRotate(90);
-            Bitmap tempa = BitmapFactory.decodeStream(is2, null, o2);
-            Bitmap temp = Bitmap.createScaledBitmap(tempa, width, height, true);
-            Log.d("DECODE", temp.getWidth() + "X" + temp.getHeight());
+            Bitmap temp = Bitmap.createScaledBitmap(image, height, width, true);
             return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
         }
     }
-
 
 	public static DoubleMatrix2D ZCAWhiten(DoubleMatrix2D input, DoubleMatrix1D meanPatch, DoubleMatrix2D ZCAWhite) {
 		for(int i = 0; i < input.rows(); i++) {

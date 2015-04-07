@@ -6,6 +6,15 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/button_run" 
-        android:onClick="run" />
+        android:text="@string/button_gallery"
+        android:onClick="run"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_camera"
+        android:id="@+id/button"
+        android:layout_gravity="center_horizontal"
+        android:onClick="dispatchTakePictureIntent" />
 </LinearLayout>

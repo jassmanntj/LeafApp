@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -30,7 +31,9 @@ public class MainActivity extends ActionBarActivity {
 	DeviceImageLoader loader;
 	AssetManager am;
     HashMap<Integer, String> labelMap;
-	@Override
+    static final int REQUEST_IMAGE_CAPTURE = 1;
+    static final int REQUEST_IMAGE_GALLERY = 100;
+    @Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
@@ -83,47 +86,64 @@ public class MainActivity extends ActionBarActivity {
         startActivityForResult(photoPicker, 100);
 	}
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent imageReturnedIntent) {
-        super.onActivityResult(requestCode, resultCode, imageReturnedIntent);
+    public void dispatchTakePictureIntent(View view) {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        }
+    }
 
-        switch(requestCode) {
-            case 100:
-                if(resultCode == RESULT_OK){
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Bitmap img = null;
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_IMAGE_GALLERY:
                     try {
-                        Uri selectedImage = imageReturnedIntent.getData();
+                        Uri selectedImage = data.getData();
                         InputStream imageStream1 = getContentResolver().openInputStream(selectedImage);
                         InputStream imageStream2 = getContentResolver().openInputStream(selectedImage);
-                        InputStream imageStream3 = getContentResolver().openInputStream(selectedImage);
-                        InputStream imageStream4 = getContentResolver().openInputStream(selectedImage);
-                        loader.loadImage(3, 60, 80, imageStream3, imageStream4);
                         long start = System.currentTimeMillis();
-                        DoubleMatrix2D[] image = loadImage(3, 60, 80, imageStream1, imageStream2);
-                        long timeLoad = System.currentTimeMillis();
-                        DoubleMatrix2D result = cnn.compute(image);
-                        Log.d("RESULTD",result.toString());
-                        int[] res = DeviceUtils.computeResults(result);
-                        String message = "Results:";
-                        for(int i = 0; i < res.length; i++) {
-                            message += String.format("\n%s: %.2f%%", labelMap.get(res[i]), result.get(0,res[i])*100-0.005);
-                        }
-                        TextView textView = new TextView(this);
-                        textView.setTextSize(20);
-                        textView.setText(message);
-                        // Set the text view as the activity layout
-                        setContentView(textView);
-                    }
-                    catch (Exception e) {
+                        img = DeviceUtils.decodeStream(imageStream1, imageStream2, 60, 80);
+
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
+                    break;
+                case REQUEST_IMAGE_CAPTURE:
+                    Bundle extras = data.getExtras();
+                    img = (Bitmap) extras.get("data");
+                    img = DeviceUtils.scaleImage(img, 60, 80);
+                    break;
+            }
+
+            try {
+                DoubleMatrix2D[] image = loadImage(3, 60, 80, img);
+                img.recycle();
+                long timeLoad = System.currentTimeMillis();
+                DoubleMatrix2D result = cnn.compute(image);
+                image = null;
+                int[] res = DeviceUtils.computeResults(result);
+                String message = "Results:";
+                for (int i = 0; i < res.length; i++) {
+                    message += String.format("\n%s: %.2f%%", labelMap.get(res[i]), result.get(0, res[i]) * 100 - 0.005);
                 }
+                Log.d("MESSAGE", message);
+                TextView textView = new TextView(this);
+                textView.setTextSize(20);
+                textView.setText(message);
+                // Set the text view as the activity layout
+                setContentView(textView);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
 
-    public DoubleMatrix2D[] loadImage(int channels, int width, int height, InputStream ims1, InputStream ims2) throws IOException {
+    public DoubleMatrix2D[] loadImage(int channels, int width, int height, Bitmap img) throws IOException {
         // get input stream
-        Bitmap img = DeviceUtils.decodeStream(ims1, ims2, width, height);
         int[] pixels = new int[width*height];
         img.getPixels(pixels, 0, img.getWidth(), 0, 0, img.getWidth(), img.getHeight());
         DoubleMatrix2D[] image = {  new DenseDoubleMatrix2D(img.getHeight(), img.getWidth()),
