@@ -5,6 +5,7 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
@@ -12,6 +13,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -93,10 +96,104 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
+    private class DoCalculationTask extends AsyncTask<Void, Void, String[] > {
+        Intent data;
+        int resultCode;
+        int requestCode;
+
+        public DoCalculationTask(Intent data, int resultCode, int requestCode) {
+            this.data = data;
+            this.resultCode = resultCode;
+            this.requestCode = requestCode;
+        }
+        @Override
+        protected String[] doInBackground(Void... arg0) {
+            String[] results = new String[6];
+            Bitmap img = null;
+            if (resultCode == RESULT_OK) {
+                switch (requestCode) {
+                    case REQUEST_IMAGE_GALLERY:
+                        try {
+                            Uri selectedImage = data.getData();
+                            InputStream imageStream1 = getContentResolver().openInputStream(selectedImage);
+                            InputStream imageStream2 = getContentResolver().openInputStream(selectedImage);
+                            long start = System.currentTimeMillis();
+                            img = DeviceUtils.decodeStream(imageStream1, imageStream2, 60, 80);
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case REQUEST_IMAGE_CAPTURE:
+                        Bundle extras = data.getExtras();
+                        img = (Bitmap) extras.get("data");
+                        img = DeviceUtils.scaleImage(img, 60, 80);
+                        break;
+                }
+
+                try {
+                    DoubleMatrix2D[] image = loadImage(3, 60, 80, img);
+                    img.recycle();
+                    long timeLoad = System.currentTimeMillis();
+                    DoubleMatrix2D result = cnn.compute(image);
+                    image = null;
+                    int[] res = DeviceUtils.computeResults(result);
+                    results[0] = labelMap.get(res[0]);
+                    results[1] = labelMap.get(res[1]);
+                    results[2] = labelMap.get(res[2]);
+                    results[3] = String.format("%.2f%%", result.get(0, res[0]) * 100 - 0.005);
+                    results[4] = String.format("%.2f%%", result.get(0, res[1]) * 100 - 0.005);
+                    results[5] = String.format("%.2f%%", result.get(0, res[2]) * 100 - 0.005);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return results;
+        }
+
+        protected void onPostExecute(String[] result) {
+            Button b1 = (Button) findViewById(R.id.camera_button);
+            Button b2 = (Button) findViewById(R.id.gallery_button);
+            TextView loading = (TextView) findViewById(R.id.loading_text);
+            GridLayout results = (GridLayout)findViewById(R.id.results);
+            ((TextView)findViewById(R.id.res_1)).setText(result[0]);
+            ((TextView)findViewById(R.id.res_2)).setText(result[1]);
+            ((TextView)findViewById(R.id.res_3)).setText(result[2]);
+            ((TextView)findViewById(R.id.res_p_1)).setText(result[3]);
+            ((TextView)findViewById(R.id.res_p_2)).setText(result[4]);
+            ((TextView)findViewById(R.id.res_p_3)).setText(result[5]);
+            try {
+                Bitmap img = BitmapFactory.decodeStream(getAssets().open("20140420_174214s.jpg"));
+                ((ImageView)findViewById(R.id.res_img_1)).setImageBitmap(img);
+                ((ImageView)findViewById(R.id.res_img_2)).setImageBitmap(img);
+                ((ImageView)findViewById(R.id.res_img_3)).setImageBitmap(img);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            loading.setText(R.string.none);
+            results.setVisibility(View.VISIBLE);
+            b1.setVisibility(View.VISIBLE);
+            b2.setVisibility(View.VISIBLE);
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Bitmap img = null;
+        Button b1 = (Button) findViewById(R.id.camera_button);
+        Button b2 = (Button) findViewById(R.id.gallery_button);
+        TextView banner = (TextView) findViewById(R.id.banner);
+        TextView loading = (TextView) findViewById(R.id.loading_text);
+        GridLayout results = (GridLayout)findViewById(R.id.results);
+        loading.setText(R.string.loading);
+        results.setVisibility(View.GONE);
+        banner.setVisibility(View.GONE);
+        b1.setVisibility(View.GONE);
+        b2.setVisibility(View.GONE);
+        String[] res = new String[3];
+        AsyncTask<Void, Void, String[]> t = new DoCalculationTask(data, resultCode, requestCode);
+        t.execute();
+        /*Bitmap img = null;
         if (resultCode == RESULT_OK) {
             switch (requestCode) {
                 case REQUEST_IMAGE_GALLERY:
@@ -125,20 +222,22 @@ public class MainActivity extends ActionBarActivity {
                 DoubleMatrix2D result = cnn.compute(image);
                 image = null;
                 int[] res = DeviceUtils.computeResults(result);
-                String message = "Results:";
-                for (int i = 0; i < res.length; i++) {
-                    message += String.format("\n%s: %.2f%%", labelMap.get(res[i]), result.get(0, res[i]) * 100 - 0.005);
-                }
-                Log.d("MESSAGE", message);
-                TextView textView = new TextView(this);
-                textView.setTextSize(20);
-                textView.setText(message);
-                // Set the text view as the activity layout
-                setContentView(textView);
+                TextView res1 = (TextView)findViewById(R.id.res_1);
+                TextView res2 = (TextView)findViewById(R.id.res_2);
+                TextView res3 = (TextView)findViewById(R.id.res_3);
+                res1.setText(String.format(" %s: %.2f%%", labelMap.get(res[0]), result.get(0, res[0]) * 100 - 0.005));
+                res2.setText(String.format(" %s: %.2f%%", labelMap.get(res[1]), result.get(0, res[1]) * 100 - 0.005));
+                res3.setText(String.format(" %s: %.2f%%", labelMap.get(res[2]), result.get(0, res[2]) * 100 - 0.005));
+                loading.setText(R.string.none);
+                results.setVisibility(View.VISIBLE);
             } catch (Exception e) {
                 e.printStackTrace();
+                loading.setText(R.string.error);
+            } finally {
+                b1.setVisibility(View.VISIBLE);
+                b2.setVisibility(View.VISIBLE);
             }
-        }
+        }*/
     }
 
 
