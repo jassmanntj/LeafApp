@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+    compileSdkVersion 22
+    buildToolsVersion "22.0.1"
 
     defaultConfig {
         applicationId "com.example.jassmanntj.leafapp"
@@ -10,6 +10,9 @@ android {
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
+        ndk {
+            moduleName "app"
+        }
     }
     buildTypes {
         release {
@@ -17,10 +20,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    packagingOptions {
+        exclude 'META-INF/INDEX.LIST'
+    }
 }
 
 dependencies {
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile files('src/main/java/com/example/jassmanntj/leafapp/parallelcolt-0.9.4.jar')
     compile files('src/main/java/com/example/jassmanntj/leafapp/jtransforms.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/netlib-java.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/optimization.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/junit.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/jplasma.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/csparsej.jar')
 }

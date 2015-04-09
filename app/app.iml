@@ -83,13 +83,18 @@
       <excludeFolder url="file://$MODULE_DIR$/build/outputs" />
       <excludeFolder url="file://$MODULE_DIR$/build/tmp" />
     </content>
-    <orderEntry type="jdk" jdkName="Android API 21 Platform" jdkType="Android SDK" />
+    <orderEntry type="jdk" jdkName="Android API 22 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="jtransforms" level="project" />
     <orderEntry type="library" exported="" name="appcompat-v7-22.0.0" level="project" />
+    <orderEntry type="library" exported="" name="junit" level="project" />
+    <orderEntry type="library" exported="" name="netlib-java" level="project" />
     <orderEntry type="library" exported="" name="parallelcolt-0.9.4" level="project" />
+    <orderEntry type="library" exported="" name="optimization" level="project" />
+    <orderEntry type="library" exported="" name="csparsej" level="project" />
     <orderEntry type="library" exported="" name="support-v4-22.0.0" level="project" />
     <orderEntry type="library" exported="" name="support-annotations-22.0.0" level="project" />
+    <orderEntry type="library" exported="" name="jplasma" level="project" />
   </component>
 </module>
 

@@ -17,8 +17,10 @@ import cern.colt.matrix.tdouble.DoubleFactory2D;
 import cern.colt.matrix.tdouble.DoubleMatrix1D;
 import cern.colt.matrix.tdouble.DoubleMatrix2D;
 import cern.colt.matrix.tdouble.algo.DenseDoubleAlgebra;
+import cern.colt.matrix.tdouble.algo.decomposition.DenseDoubleSingularValueDecomposition;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
-import cern.jet.math.tdcomplex.DComplexFunctions;import cern.jet.math.tdouble.DoubleFunctions;
+import cern.jet.math.tdcomplex.DComplexFunctions;
+import cern.jet.math.tdouble.DoubleFunctions;
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D;
 
 import java.io.FileNotFoundException;
@@ -177,14 +179,45 @@ public class DeviceUtils {
         }
     }
 
-	public static DoubleMatrix2D ZCAWhiten(DoubleMatrix2D input, DoubleMatrix1D meanPatch, DoubleMatrix2D ZCAWhite) {
-		for(int i = 0; i < input.rows(); i++) {
-			input.viewRow(i).assign(meanPatch, DeviceUtils.sub);
-		}
-		DoubleMatrix2D result = new DenseDoubleMatrix2D(input.rows(), ZCAWhite.columns());
-		input.zMult(ZCAWhite, result);
-		return result;
+	public static DoubleMatrix2D ZCAWhiten(DoubleMatrix2D input, double epsilon) {
+        //DoubleMatrix2D img = flatten(input);
+        DoubleFactory2D df = DoubleFactory2D.dense;
+        double mean = 0;
+        for(int j = 0; j < input.columns(); j++) {
+            mean += input.get(0,j);
+        }
+        mean /= input.size();
+        input.assign(DoubleFunctions.minus(mean));
+
+        DoubleMatrix2D sigma = new DenseDoubleMatrix2D(input.rows(), input.rows());
+        input.zMult(input, sigma, 0, 0, false, true);
+        sigma = df.diagonal(df.diagonal(sigma));
+        //input.assign(DoubleFunctions.div(input.rows()));
+        DenseDoubleAlgebra d = new DenseDoubleAlgebra();
+        DenseDoubleSingularValueDecomposition svd = d.svd(sigma);
+        DoubleMatrix1D r1 = df.diagonal(svd.getS());
+        r1.assign(DoubleFunctions.plus(epsilon));
+        r1.assign(DoubleFunctions.inv);
+        DoubleMatrix2D r2 = df.diagonal(r1);
+        DoubleMatrix2D r3 = new DenseDoubleMatrix2D(input.rows(), input.rows());
+        svd.getU().zMult(r2, r3);
+        DoubleMatrix2D r4 = new DenseDoubleMatrix2D(input.rows(), input.rows());
+        r3.zMult(svd.getU(), r4, 0, 0, false, true);
+        DoubleMatrix2D r5 = new DenseDoubleMatrix2D(input.rows(), input.columns());
+        return r4.zMult(input, r5);
 	}
+
+    public static DoubleMatrix2D flatten(DoubleMatrix2D[] z) {
+        DoubleMatrix2D image = new DenseDoubleMatrix2D(1, z.length*z[0].rows()*z[0].columns());
+        for(int i = 0; i < z.length; i++) {
+            for(int j = 0; j < z[i].rows(); j++) {
+                for(int k = 0; k < z[i].columns(); k++) {
+                    image.setQuick(0, i*z[i].rows()*z[i].columns()+j*z[i].columns()+k,z[i].get(j,k));
+                }
+            }
+        }
+        return image;
+    }
 
     public static DoubleMatrix2D[] normalizeData(DoubleMatrix2D[] input) {
         double mean = 0;

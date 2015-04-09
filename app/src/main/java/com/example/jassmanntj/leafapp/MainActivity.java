@@ -96,7 +96,7 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private class DoCalculationTask extends AsyncTask<Void, Void, String[] > {
+    private class DoCalculationTask extends AsyncTask<Void, Void, double[] > {
         Intent data;
         int resultCode;
         int requestCode;
@@ -107,8 +107,8 @@ public class MainActivity extends ActionBarActivity {
             this.requestCode = requestCode;
         }
         @Override
-        protected String[] doInBackground(Void... arg0) {
-            String[] results = new String[6];
+        protected double[] doInBackground(Void... arg0) {
+            double[] results = new double[6];
             Bitmap img = null;
             if (resultCode == RESULT_OK) {
                 switch (requestCode) {
@@ -138,12 +138,12 @@ public class MainActivity extends ActionBarActivity {
                     DoubleMatrix2D result = cnn.compute(image);
                     image = null;
                     int[] res = DeviceUtils.computeResults(result);
-                    results[0] = labelMap.get(res[0]);
-                    results[1] = labelMap.get(res[1]);
-                    results[2] = labelMap.get(res[2]);
-                    results[3] = String.format("%.2f%%", result.get(0, res[0]) * 100 - 0.005);
-                    results[4] = String.format("%.2f%%", result.get(0, res[1]) * 100 - 0.005);
-                    results[5] = String.format("%.2f%%", result.get(0, res[2]) * 100 - 0.005);
+                    results[0] = res[0];
+                    results[1] = res[1];
+                    results[2] = res[2];
+                    results[3] = result.get(0, res[0]) * 100 - 0.005;
+                    results[4] = result.get(0, res[1]) * 100 - 0.005;
+                    results[5] = result.get(0, res[2]) * 100 - 0.005;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -151,22 +151,24 @@ public class MainActivity extends ActionBarActivity {
             return results;
         }
 
-        protected void onPostExecute(String[] result) {
+        protected void onPostExecute(double[] result) {
             Button b1 = (Button) findViewById(R.id.camera_button);
             Button b2 = (Button) findViewById(R.id.gallery_button);
             TextView loading = (TextView) findViewById(R.id.loading_text);
             GridLayout results = (GridLayout)findViewById(R.id.results);
-            ((TextView)findViewById(R.id.res_1)).setText(result[0]);
-            ((TextView)findViewById(R.id.res_2)).setText(result[1]);
-            ((TextView)findViewById(R.id.res_3)).setText(result[2]);
-            ((TextView)findViewById(R.id.res_p_1)).setText(result[3]);
-            ((TextView)findViewById(R.id.res_p_2)).setText(result[4]);
-            ((TextView)findViewById(R.id.res_p_3)).setText(result[5]);
+            String res1 = labelMap.get((int)result[0]);
+            String res2 = labelMap.get((int)result[1]);
+            String res3 = labelMap.get((int) result[2]);
+            ((TextView)findViewById(R.id.res_1)).setText(res1);
+            ((TextView)findViewById(R.id.res_2)).setText(res2);
+            ((TextView)findViewById(R.id.res_3)).setText(res3);
+            ((TextView)findViewById(R.id.res_p_1)).setText(String.format("%.2f%%",result[3]));
+            ((TextView)findViewById(R.id.res_p_2)).setText(String.format("%.2f%%",result[4]));
+            ((TextView)findViewById(R.id.res_p_3)).setText(String.format("%.2f%%",result[5]));
             try {
-                Bitmap img = BitmapFactory.decodeStream(getAssets().open("20140420_174214s.jpg"));
-                ((ImageView)findViewById(R.id.res_img_1)).setImageBitmap(img);
-                ((ImageView)findViewById(R.id.res_img_2)).setImageBitmap(img);
-                ((ImageView)findViewById(R.id.res_img_3)).setImageBitmap(img);
+                ((ImageView)findViewById(R.id.res_img_1)).setImageBitmap(BitmapFactory.decodeStream(getAssets().open(res1+".jpg")));
+                ((ImageView)findViewById(R.id.res_img_2)).setImageBitmap(BitmapFactory.decodeStream(getAssets().open(res2+".jpg")));
+                ((ImageView)findViewById(R.id.res_img_3)).setImageBitmap(BitmapFactory.decodeStream(getAssets().open(res3+".jpg")));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -191,53 +193,8 @@ public class MainActivity extends ActionBarActivity {
         b1.setVisibility(View.GONE);
         b2.setVisibility(View.GONE);
         String[] res = new String[3];
-        AsyncTask<Void, Void, String[]> t = new DoCalculationTask(data, resultCode, requestCode);
+        AsyncTask<Void, Void, double[]> t = new DoCalculationTask(data, resultCode, requestCode);
         t.execute();
-        /*Bitmap img = null;
-        if (resultCode == RESULT_OK) {
-            switch (requestCode) {
-                case REQUEST_IMAGE_GALLERY:
-                    try {
-                        Uri selectedImage = data.getData();
-                        InputStream imageStream1 = getContentResolver().openInputStream(selectedImage);
-                        InputStream imageStream2 = getContentResolver().openInputStream(selectedImage);
-                        long start = System.currentTimeMillis();
-                        img = DeviceUtils.decodeStream(imageStream1, imageStream2, 60, 80);
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    break;
-                case REQUEST_IMAGE_CAPTURE:
-                    Bundle extras = data.getExtras();
-                    img = (Bitmap) extras.get("data");
-                    img = DeviceUtils.scaleImage(img, 60, 80);
-                    break;
-            }
-
-            try {
-                DoubleMatrix2D[] image = loadImage(3, 60, 80, img);
-                img.recycle();
-                long timeLoad = System.currentTimeMillis();
-                DoubleMatrix2D result = cnn.compute(image);
-                image = null;
-                int[] res = DeviceUtils.computeResults(result);
-                TextView res1 = (TextView)findViewById(R.id.res_1);
-                TextView res2 = (TextView)findViewById(R.id.res_2);
-                TextView res3 = (TextView)findViewById(R.id.res_3);
-                res1.setText(String.format(" %s: %.2f%%", labelMap.get(res[0]), result.get(0, res[0]) * 100 - 0.005));
-                res2.setText(String.format(" %s: %.2f%%", labelMap.get(res[1]), result.get(0, res[1]) * 100 - 0.005));
-                res3.setText(String.format(" %s: %.2f%%", labelMap.get(res[2]), result.get(0, res[2]) * 100 - 0.005));
-                loading.setText(R.string.none);
-                results.setVisibility(View.VISIBLE);
-            } catch (Exception e) {
-                e.printStackTrace();
-                loading.setText(R.string.error);
-            } finally {
-                b1.setVisibility(View.VISIBLE);
-                b2.setVisibility(View.VISIBLE);
-            }
-        }*/
     }
 
 
@@ -245,22 +202,36 @@ public class MainActivity extends ActionBarActivity {
         // get input stream
         int[] pixels = new int[width*height];
         img.getPixels(pixels, 0, img.getWidth(), 0, 0, img.getWidth(), img.getHeight());
-        DoubleMatrix2D[] image = {  new DenseDoubleMatrix2D(img.getHeight(), img.getWidth()),
+        DoubleMatrix2D image = new DenseDoubleMatrix2D(1, img.getHeight()*img.getWidth()*channels);
+        /*DoubleMatrix2D[] image = {  new DenseDoubleMatrix2D(img.getHeight(), img.getWidth()),
                                     new DenseDoubleMatrix2D(img.getHeight(), img.getWidth()),
-                                    new DenseDoubleMatrix2D(img.getHeight(), img.getWidth())};
+                                    new DenseDoubleMatrix2D(img.getHeight(), img.getWidth())};*/
         for(int i = 0; i < img.getHeight(); i++) {
             for(int j = 0; j < img.getWidth(); j++) {
                 for(int k = 0; k < channels; k++) {
-                    image[k].set(i,j, ((pixels[j*img.getHeight()+i] >>> (8 * k)) & 0xFF));
+                    image.set(0, k * img.getHeight() * img.getWidth() + i * img.getWidth() + j, ((pixels[j * img.getHeight() + i] >>> (8 * k)) & 0xFF));
                 }
             }
         }
-        image = DeviceUtils.normalizeData(image);
+        image = DeviceUtils.ZCAWhiten(image, 1e-5);
+        DoubleMatrix2D[] res = new DoubleMatrix2D[channels];
         for(int i = 0; i < channels; i++) {
-            Log.d("XXX", image[i].toString());
+            res[i] = new DenseDoubleMatrix2D(img.getHeight(), img.getWidth());
+        }
+        for(int i = 0; i < channels; i++) {
+            for(int j = 0; j < img.getHeight(); j++) {
+                for(int k = 0; k < img.getWidth(); k++) {
+                    res[i].set(j, k, image.get(0, i * img.getHeight() * img.getWidth() + j * img.getWidth() + k));
+                }
+            }
         }
 
-        return image;
+        /*image = DeviceUtils.normalizeData(image);
+        for(int i = 0; i < channels; i++) {
+            Log.d("XXX", image[i].toString());
+        }*/
+
+        return res;
     }
 
 }
