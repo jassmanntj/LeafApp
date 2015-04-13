@@ -77,12 +77,10 @@ public class DeviceImageLoader {
 
     private DenseDoubleMatrix2D reshape(DenseDoubleMatrix2D input, int rows, int cols) {
         DenseDoubleMatrix2D result = new DenseDoubleMatrix2D(rows, cols);
-        DoubleMatrix1D in = input.vectorize();
-        for(int i = 0; i < cols; i++) {
-            for(int j = 0; j < rows; j++) {
-                result.set(j, i, in.get(i*rows+j));
-            }
+        for(int i = 0; i < input.size(); i++) {
+            result.set(i / cols, i % cols, input.get(i / input.columns(), i % input.columns()));
         }
+
         return result;
     }
 

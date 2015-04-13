@@ -22,6 +22,7 @@ import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
 import cern.jet.math.tdcomplex.DComplexFunctions;
 import cern.jet.math.tdouble.DoubleFunctions;
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D;
+import org.netlib.lapack.LAPACK;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
