@@ -17,19 +17,14 @@ import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D;
  */
 public class JDeviceUtils {
 
-    public static Matrix sigmoid(Matrix input) {
-        for(int i = 0; i < input.getRowDimension(); i++) {
-            for(int j = 0; j < input.getColumnDimension(); j++) {
-                input.set(i,j,1/(1+Math.exp(-input.get(i,j))));
-            }
-        }
-        return input;
-    }
+    public static final int NUMTHREADS = 8;
+    public static final int NONE = 0;
+    public static final int SIGMOID = 1;
+    public static final int PRELU = 2;
+    public static final int RELU = 3;
 
 
     public static Matrix conv2d(Matrix input, Matrix kernel) {
-
-
         Matrix flippedKernel = new Matrix(kernel.getRowDimension(), kernel.getColumnDimension());
         for(int i = 0; i < kernel.getRowDimension(); i++) {
             for(int j = 0; j < kernel.getColumnDimension(); j++) {
@@ -237,6 +232,47 @@ public class JDeviceUtils {
         }
 
         return input;
+    }
+
+        public static Matrix activationFunction(int type, Matrix z, double a) {
+            switch(type) {
+                case SIGMOID:
+                    return sigmoid(z);
+                case PRELU:
+                    return prelu(z, a);
+                case RELU:
+                    return relu(z);
+                case NONE:
+                    return z;
+                default:
+                    return sigmoid(z);
+            }
+        }
+
+
+    public static Matrix sigmoid(Matrix input) {
+        for(int i = 0; i < input.getRowDimension(); i++) {
+            for(int j = 0; j < input.getColumnDimension(); j++) {
+                input.set(i,j,1/(1+Math.exp(-input.get(i,j))));
+            }
+        }
+        return input;
+    }
+
+    public static Matrix prelu(Matrix z, double a) {
+        //return z.le(0).mul(a-1).add(1).mul(z);
+        Matrix res = new Matrix(z.getRowDimension(), z.getColumnDimension());
+        for(int i = 0; i < res.getRowDimension(); i++) {
+            for(int j = 0; j < res.getColumnDimension(); j++) {
+                double k = z.get(i,j);
+                res.set(i,j,Math.max(0,k)+a*Math.min(0,k));
+            }
+        }
+        return res;
+    }
+
+    public static Matrix relu(Matrix z) {
+        return prelu(z, 0);
     }
 }
 

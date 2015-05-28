@@ -25,22 +25,6 @@ android {
 dependencies {
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'gov.nist.math:jama:1.0.3'
-    compile('net.sourceforge.parallelcolt:parallelcolt:0.10.1') {
-        exclude module: 'jtransforms'
-        exclude module: 'jplasma'
-        //exclude module: 'netlib-java'
-    }
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/parallelcolt-0.9.4.jar')
     compile files('src/main/java/com/example/jassmanntj/leafapp/jtransforms.jar')
-    //compile 'com.github.fommil.netlib:native_system-java:1.1'
-    //compile 'com.github.fommil.netlib:all:1.1.2'
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/netlib-java.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/optimization.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/junit.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/jplasma.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/csparsej.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/f2jutil.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/netlib-java.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/lapack.jar')
-    //compile files('src/main/java/com/example/jassmanntj/leafapp/xerbla.jar')
+
 }

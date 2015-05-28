@@ -9,6 +9,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,7 +31,7 @@ import Jama.Matrix;
  */
 public class JMainActivity extends ActionBarActivity {
     JDeviceCNN cnn;
-    DeviceImageLoader loader;
+    //DeviceImageLoader loader;
     AssetManager am;
     HashMap<Integer, String> labelMap;
     static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -42,10 +43,8 @@ public class JMainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         try {
             am = getAssets();
-            loader = new DeviceImageLoader(am);
-            JDeviceConvolutionLayer[] cl = {new JDeviceConvolutionLayer(am, "16-Cross-5-4-200.0Layer0.layer")};
-            JDeviceSparseAutoencoder[] sae = {new JDeviceSparseAutoencoder(am, "16-Cross-5-4-200.0Layer1.layer0")};
-            JDeviceSoftmaxClassifier sc = new JDeviceSoftmaxClassifier(am, "16-Cross-5-4-200.0Layer1.layer1");
+            //loader = new DeviceImageLoader(am);
+            cnn = new JDeviceCNN(am, "TestNNs0");
             this.labelMap = new HashMap<Integer, String>();
             InputStream is = am.open("LabelMap");
             @SuppressWarnings("resource")
@@ -56,7 +55,6 @@ public class JMainActivity extends ActionBarActivity {
                 labelMap.put(Integer.parseInt(split[0]), split[1]);
                 data = reader.readLine();
             }
-            cnn = new JDeviceCNN(cl, sae, sc);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -119,7 +117,7 @@ public class JMainActivity extends ActionBarActivity {
                             InputStream imageStream1 = getContentResolver().openInputStream(selectedImage);
                             InputStream imageStream2 = getContentResolver().openInputStream(selectedImage);
                             long start = System.currentTimeMillis();
-                            img = DeviceUtils.decodeStream(imageStream1, imageStream2, 60, 80);
+                            img = JDeviceUtils.decodeStream(imageStream1, imageStream2, 60, 80);
 
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -128,7 +126,7 @@ public class JMainActivity extends ActionBarActivity {
                     case REQUEST_IMAGE_CAPTURE:
                         Bundle extras = data.getExtras();
                         img = (Bitmap) extras.get("data");
-                        img = DeviceUtils.scaleImage(img, 60, 80);
+                        img = JDeviceUtils.scaleImage(img, 60, 80);
                         break;
                 }
 
@@ -157,6 +155,7 @@ public class JMainActivity extends ActionBarActivity {
             Button b2 = (Button) findViewById(R.id.gallery_button);
             TextView loading = (TextView) findViewById(R.id.loading_text);
             GridLayout results = (GridLayout) findViewById(R.id.results);
+            Log.d("RES0", ""+result[0]);
             String res1 = labelMap.get((int) result[0]);
             String res2 = labelMap.get((int) result[1]);
             String res3 = labelMap.get((int) result[2]);
@@ -228,7 +227,7 @@ public class JMainActivity extends ActionBarActivity {
                 }
             }
         }
-        return JDeviceUtils.normalizeData(res);
+        return res;//JDeviceUtils.normalizeData(res);
     }
 }
 
