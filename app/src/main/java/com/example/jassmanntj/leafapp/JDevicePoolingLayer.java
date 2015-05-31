@@ -30,13 +30,14 @@ public class JDevicePoolingLayer extends JDeviceConvPoolLayer {
         Matrix result = new Matrix(resultRows, resultCols);
         for(int poolRow = 0; poolRow < resultRows; poolRow++) {
             for(int poolCol = 0; poolCol < resultCols; poolCol++) {
-                double sum = 0;
+                double max = 0;
                 for(int i = 0; i < poolDim; i++) {
                     for(int j = 0; j < poolDim; j++) {
-                        sum += convolvedFeature.get(poolRow*poolDim+i,poolCol*poolDim+j);
+                        double val = convolvedFeature.get(poolRow*poolDim+i,poolCol*poolDim+j);
+                        max = max > val? max:val;
                     }
                 }
-                result.set(poolRow, poolCol, sum / (poolDim * poolDim));
+                result.set(poolRow, poolCol, max);
             }
         }
         return result;

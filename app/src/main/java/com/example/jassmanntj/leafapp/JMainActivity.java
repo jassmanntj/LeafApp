@@ -41,25 +41,19 @@ public class JMainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        try {
-            am = getAssets();
-            //loader = new DeviceImageLoader(am);
-            cnn = new JDeviceCNN(am, "TestNNs0");
-            this.labelMap = new HashMap<Integer, String>();
-            InputStream is = am.open("LabelMap");
-            @SuppressWarnings("resource")
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-            String data = reader.readLine();
-            while (data != null) {
-                String[] split = data.split(":");
-                labelMap.put(Integer.parseInt(split[0]), split[1]);
-                data = reader.readLine();
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        this.labelMap = new HashMap<Integer, String>();
+        Button b1 = (Button) findViewById(R.id.camera_button);
+        Button b2 = (Button) findViewById(R.id.gallery_button);
+        TextView banner = (TextView) findViewById(R.id.banner);
+        TextView loading = (TextView) findViewById(R.id.loading_text);
+        GridLayout results = (GridLayout) findViewById(R.id.results);
+        loading.setText(R.string.loading);
+        results.setVisibility(View.GONE);
+        banner.setVisibility(View.GONE);
+        b1.setVisibility(View.GONE);
+        b2.setVisibility(View.GONE);
+        AsyncTask<Void, Void, Void> t = new DoLoadTask(labelMap);
+        t.execute();
     }
 
     @Override
@@ -91,6 +85,48 @@ public class JMainActivity extends ActionBarActivity {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        }
+    }
+
+    private class DoLoadTask extends AsyncTask<Void, Void, Void> {
+        private HashMap<Integer, String> labelMap;
+        public DoLoadTask(HashMap<Integer, String> labelMap) {
+            this.labelMap = labelMap;
+        }
+
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            try {
+                am = getAssets();
+                //loader = new DeviceImageLoader(am);
+                cnn = new JDeviceCNN(am, "TestNNs0");
+
+                Log.d("GO","GOGOGO");
+                InputStream is = am.open("LabelMap");
+                @SuppressWarnings("resource")
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                String data = reader.readLine();
+                while (data != null) {
+                    String[] split = data.split(":");
+                    labelMap.put(Integer.parseInt(split[0]), split[1]);
+                    data = reader.readLine();
+                }
+                Log.d("POST", "PRE");
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void v) {
+            Log.d("POST", "POST");
+            Button b1 = (Button) findViewById(R.id.camera_button);
+            Button b2 = (Button) findViewById(R.id.gallery_button);
+            TextView loading = (TextView) findViewById(R.id.loading_text);
+            loading.setText(R.string.none);
+            b1.setVisibility(View.VISIBLE);
+            b2.setVisibility(View.VISIBLE);
         }
     }
 
@@ -192,9 +228,18 @@ public class JMainActivity extends ActionBarActivity {
         banner.setVisibility(View.GONE);
         b1.setVisibility(View.GONE);
         b2.setVisibility(View.GONE);
-        String[] res = new String[3];
         AsyncTask<Void, Void, double[]> t = new DoCalculationTask(data, resultCode, requestCode);
         t.execute();
+    }
+
+    private String getString(Matrix mat) {
+        String s = "";
+        for(int i = 0; i < mat.getRowDimension(); i++) {
+            for(int j = 0; j < mat.getColumnDimension(); j++) {
+                s += mat.get(i,j);
+            }
+        }
+        return s;
     }
 
 
@@ -215,7 +260,10 @@ public class JMainActivity extends ActionBarActivity {
                 }
             }
         }
+        //Log.d("VALS", "PREWHITE: "+getString(image));
         image = JDeviceUtils.ZCAWhiten(image, 1e-5);
+        //Log.d("VALS", "POSTWHITE: "+getString(image));
+
         Matrix[] res = new Matrix[channels];
         for (int i = 0; i < channels; i++) {
             res[i] = new Matrix(img.getHeight(), img.getWidth());

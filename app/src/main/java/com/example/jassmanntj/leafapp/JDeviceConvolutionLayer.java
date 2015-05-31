@@ -41,7 +41,7 @@ public class JDeviceConvolutionLayer extends JDeviceConvPoolLayer {
                 res.plusEquals(JDeviceUtils.conv2d(input[channel], theta[feature][channel]));
             }
 
-            result[feature] = JDeviceUtils.activationFunction(layer1, res.plus(new Matrix(res.getRowDimension(), res.getColumnDimension(), bias.get(0, feature))), a);
+            result[feature] = JDeviceUtils.activationFunction(layer1, res.plus(new Matrix(res.getRowDimension(), res.getColumnDimension(), bias.get(feature, 0))), a);
         }
 
 

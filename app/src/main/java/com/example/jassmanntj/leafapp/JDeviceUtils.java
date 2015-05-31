@@ -22,6 +22,7 @@ public class JDeviceUtils {
     public static final int SIGMOID = 1;
     public static final int PRELU = 2;
     public static final int RELU = 3;
+    public static final int SOFTMAX = 4;
 
 
     public static Matrix conv2d(Matrix input, Matrix kernel) {
@@ -164,21 +165,20 @@ public class JDeviceUtils {
     }
 
     public static Matrix ZCAWhiten(Matrix input, double epsilon) {
-        //DoubleMatrix2D img = flatten(input);
         double mean = 0;
         for(int j = 0; j < input.getColumnDimension(); j++) {
             mean += input.get(0,j);
         }
         mean /= input.getRowDimension()*input.getColumnDimension();
-        input.minus(new Matrix(input.getRowDimension(), input.getColumnDimension(), mean));
-        Matrix sigma = input.times(input.transpose());
+        input.minusEquals(new Matrix(input.getRowDimension(), input.getColumnDimension(), mean));
+        Matrix sigma = input.times(input.transpose()).times(1.0/input.getColumnDimension());
         sigma.arrayTimesEquals(Matrix.identity(sigma.getRowDimension(),sigma.getColumnDimension()));
         SingularValueDecomposition svd = sigma.svd();
         Matrix s = svd.getS();
         for(int i = 0; i < s.getRowDimension(); i++) {
-            s.set(i, i, 1/(s.get(i, i)+epsilon));
+            s.set(i, i, 1/(Math.sqrt(s.get(i, i)+epsilon)));
         }
-        Matrix res = svd.getU().times(s).times(svd.getU()).times(input);
+        Matrix res = svd.getU().times(s).times(svd.getU().transpose()).times(input);
 
         return res;
     }
@@ -242,12 +242,29 @@ public class JDeviceUtils {
                     return prelu(z, a);
                 case RELU:
                     return relu(z);
+                case SOFTMAX:
+                    return softmax(z);
                 case NONE:
                     return z;
                 default:
                     return sigmoid(z);
             }
         }
+
+    private static Matrix softmax(Matrix z) {
+        double max = z.norm1();
+        for(int j = 0; j < z.getColumnDimension(); j++) {
+            z.set(0,j,Math.exp(z.get(0,j)-max));
+        }
+        double sum = 0;
+        for(int i = 0; i < z.getColumnDimension(); i++) {
+            sum += z.get(0,i);
+        }
+        for(int i = 0; i < z.getColumnDimension(); i++) {
+            z.set(0,i, z.get(0,i)/sum);
+        }
+        return z;
+    }
 
 
     public static Matrix sigmoid(Matrix input) {
