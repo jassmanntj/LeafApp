@@ -25,6 +25,7 @@ android {
 dependencies {
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'gov.nist.math:jama:1.0.3'
-    compile files('src/main/java/com/example/jassmanntj/leafapp/jtransforms.jar')
-
+    compile files('src/main/java/com/example/jassmanntj/leafapp/DeviceNN.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/JLargeArrays-1.3.jar')
+    compile files('src/main/java/com/example/jassmanntj/leafapp/JTransforms-3.0.jar')
 }

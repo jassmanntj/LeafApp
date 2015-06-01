@@ -78,23 +78,4 @@ public class LoadingUtils {
             return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
         }
     }
-
-    public static Matrix ZCAWhiten(Matrix input, double epsilon) {
-        double mean = 0;
-        for(int j = 0; j < input.getColumnDimension(); j++) {
-            mean += input.get(0,j);
-        }
-        mean /= input.getRowDimension()*input.getColumnDimension();
-        input.minusEquals(new Matrix(input.getRowDimension(), input.getColumnDimension(), mean));
-        Matrix sigma = input.times(input.transpose()).times(1.0/input.getColumnDimension());
-        sigma.arrayTimesEquals(Matrix.identity(sigma.getRowDimension(),sigma.getColumnDimension()));
-        SingularValueDecomposition svd = sigma.svd();
-        Matrix s = svd.getS();
-        for(int i = 0; i < s.getRowDimension(); i++) {
-            s.set(i, i, 1/(Math.sqrt(s.get(i, i)+epsilon)));
-        }
-        Matrix res = svd.getU().times(s).times(svd.getU().transpose()).times(input);
-
-        return res;
-    }
 }
