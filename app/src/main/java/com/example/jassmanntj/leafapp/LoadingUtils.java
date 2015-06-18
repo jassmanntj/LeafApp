@@ -1,20 +1,72 @@
 package com.example.jassmanntj.leafapp;
 
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 
-import java.io.IOException;
 import java.io.InputStream;
 
-import Jama.Matrix;
-import Jama.SingularValueDecomposition;
-
 /**
- * Created by jassmanntj on 5/31/2015.
+ * LoadingUtils - utilities for loading and scaling an image on a device
+ *
+ * @author Timothy Jassmann
+ * @version 06/17/2015
  */
-public class LoadingUtils {
+public abstract class LoadingUtils {
+
+    /**
+     * decodeStream - returns a scaled image from input stream
+     *
+     * @param is1 one input stream pointing to data
+     * @param is2 another input stream pointing to same data
+     * @param width width to scale images to
+     * @param height height to scale images to
+     *
+     * @return scaled image from input stream
+     */
+    public static Bitmap decodeStream(InputStream is1, InputStream is2, int width, int height) {
+        // Decode image size
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeStream(is1, null, o);
+        BitmapFactory.Options o2 = new BitmapFactory.Options();
+        o2.inSampleSize = calculateInSampleSize(o, o.outWidth, o.outHeight);
+        o2.inJustDecodeBounds = false;
+        Bitmap img = BitmapFactory.decodeStream(is2, null, o2);
+        return scaleImage(img, width, height);
+
+    }
+
+    /**
+     * scaleImage - scales an bitmap image to the specified width and height
+     *
+     * @param image bitmap to scale
+     * @param width width to scale images to
+     * @param height height to scale images to
+     *
+     * @return scaled bitmap
+     */
+    public static Bitmap scaleImage(Bitmap image, int width, int height) {
+        if((image.getHeight() < image.getWidth() && height < width)
+                || (image.getHeight() > image.getWidth() && height > width)) {
+            return Bitmap.createScaledBitmap(image, width, height, true);
+        }
+        else {
+            android.graphics.Matrix matrix = new android.graphics.Matrix();
+            matrix.postRotate(90);
+            Bitmap temp = Bitmap.createScaledBitmap(image, height, width, true);
+            return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
+        }
+    }
+
+    /**
+     * calculateInSampleSize - calculates size to sample image down to
+     *
+     * @param options options containing image width and height info
+     * @param reqWidth width image is being scaled down to
+     * @param reqHeight height image is being scaled down to
+     *
+     * @return power of 2 that image can easily be scaled by
+     */
     private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
         // Raw height and width of image
         final int height = options.outHeight;
@@ -33,49 +85,6 @@ public class LoadingUtils {
                 inSampleSize *= 2;
             }
         }
-        Log.d("INPUT", "" + inSampleSize);
         return inSampleSize;
-    }
-
-    public static Bitmap decodeSampledBitmapFromResource(Resources res, int resId,
-                                                         int reqWidth, int reqHeight) {
-
-        // First decode with inJustDecodeBounds=true to check dimensions
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeResource(res, resId, options);
-
-        // Calculate inSampleSize
-        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
-
-        // Decode bitmap with inSampleSize set
-        options.inJustDecodeBounds = false;
-        return Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, resId, options), reqHeight, reqWidth, true);
-    }
-
-    public static Bitmap decodeStream(InputStream is1, InputStream is2, int width, int height) throws IOException {
-
-        // Decode image size
-        BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(is1, null, o);
-        BitmapFactory.Options o2 = new BitmapFactory.Options();
-        o2.inSampleSize = calculateInSampleSize(o, width, height);
-        o2.inJustDecodeBounds = false;
-        Bitmap img = BitmapFactory.decodeStream(is2, null, o2);
-        return scaleImage(img, width, height);
-
-    }
-
-    public static Bitmap scaleImage(Bitmap image, int width, int height) {
-        if(image.getHeight() > image.getWidth()) {
-            return Bitmap.createScaledBitmap(image, width, height, true);
-        }
-        else {
-            android.graphics.Matrix matrix = new android.graphics.Matrix();
-            matrix.postRotate(90);
-            Bitmap temp = Bitmap.createScaledBitmap(image, height, width, true);
-            return Bitmap.createBitmap(temp, 0, 0, temp.getWidth(), temp.getHeight(), matrix, true);
-        }
     }
 }
